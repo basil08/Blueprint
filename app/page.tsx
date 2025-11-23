@@ -78,7 +78,7 @@ export default function Home() {
           onEdit: handleEditTask,
           onDelete: handleDeleteTask,
           onView: handleViewTask,
-          workflowLabel: workflowsData.find(w => w.id === task.workflow_id)?.label || '',
+          workflowLabel: workflowsData.find((w: Workflow) => w.id === task.workflow_id)?.label || '',
           isFiltered: false, // Will be updated based on filters
         },
       }));
@@ -90,9 +90,7 @@ export default function Home() {
         target: link.target,
         type: 'smoothstep',
         animated: false,
-        markerEnd: {
-          type: 'arrowclosed',
-        },
+        markerEnd: 'arrowclosed' as const,
       }));
 
       setNodes(taskNodes);
@@ -145,9 +143,7 @@ export default function Home() {
                 id: newLink.id,
                 type: 'smoothstep',
                 animated: false,
-                markerEnd: {
-                  type: 'arrowclosed',
-                },
+                markerEnd: 'arrowclosed' as const,
               },
               eds
             )
@@ -237,7 +233,7 @@ export default function Home() {
                 onEdit: handleEditTask,
                 onDelete: handleDeleteTask,
                 onView: handleViewTask,
-                workflowLabel: workflows.find(w => w.id === savedTask.workflow_id)?.label || '',
+                workflowLabel: workflows.find((w: Workflow) => w.id === savedTask.workflow_id)?.label || '',
                 isFiltered: false,
               },
             };
@@ -255,7 +251,7 @@ export default function Home() {
                         onEdit: handleEditTask,
                         onDelete: handleDeleteTask,
                         onView: handleViewTask,
-                        workflowLabel: workflows.find(w => w.id === savedTask.workflow_id)?.label || '',
+                        workflowLabel: workflows.find((w: Workflow) => w.id === savedTask.workflow_id)?.label || '',
                         isFiltered: false,
                       },
                     }
@@ -313,7 +309,7 @@ export default function Home() {
           ...node,
           data: {
             ...node.data,
-            workflowLabel: workflows.find((w) => w.id === task.workflow_id)?.label || '',
+            workflowLabel: workflows.find((w: Workflow) => w.id === task.workflow_id)?.label || '',
             isFiltered,
           },
           style: isFiltered
