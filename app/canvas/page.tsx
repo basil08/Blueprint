@@ -13,9 +13,12 @@ import ReactFlow, {
   Controls,
   MiniMap,
   NodeTypes,
+  EdgeTypes,
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import TaskNode from '@/components/TaskNode';
+import CustomEdge from '@/components/CustomEdge';
 import TaskEditForm from '@/components/TaskEditForm';
 import TaskViewModal from '@/components/TaskViewModal';
 import FilterSidebar from '@/components/FilterSidebar';
@@ -25,6 +28,10 @@ import { auth } from '@/lib/firebase';
 
 const nodeTypes: NodeTypes = {
   task: TaskNode,
+};
+
+const edgeTypes: EdgeTypes = {
+  custom: CustomEdge,
 };
 
 export default function CanvasPage() {
@@ -57,6 +64,45 @@ export default function CanvasPage() {
     }
     return null;
   };
+
+  // Handle link delete
+  const handleDeleteLink = useCallback(
+    async (linkId: string) => {
+      if (!confirm('Are you sure you want to delete this link?')) {
+        return;
+      }
+
+      try {
+        const token = await getAuthToken();
+        const headers: HeadersInit = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`/api/links?id=${linkId}`, {
+          method: 'DELETE',
+          headers,
+        });
+
+        if (response.status === 401) {
+          router.push('/login');
+          return;
+        }
+
+        if (response.ok) {
+          // Remove link from state
+          setLinks((prevLinks) => prevLinks.filter((l) => l.id !== linkId));
+          setEdges((prevEdges) => prevEdges.filter((e) => e.id !== linkId));
+        } else {
+          alert('Failed to delete link');
+        }
+      } catch (error) {
+        console.error('Failed to delete link:', error);
+        alert('Failed to delete link');
+      }
+    },
+    [setLinks, setEdges, user, router]
+  );
 
   // Load tasks and links from API
   const loadData = useCallback(async () => {
@@ -123,9 +169,17 @@ export default function CanvasPage() {
         id: link.id,
         source: link.source,
         target: link.target,
-        type: 'smoothstep',
+        type: 'custom',
         animated: false,
-        markerEnd: 'arrowclosed' as const,
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 28,
+          height: 28,
+          color: '#000000',
+        },
+        data: {
+          onDelete: handleDeleteLink,
+        },
       }));
 
       setNodes(taskNodes);
@@ -137,7 +191,7 @@ export default function CanvasPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, router]);
+  }, [user, router, handleDeleteLink]);
 
   useEffect(() => {
     if (user) {
@@ -191,9 +245,17 @@ export default function CanvasPage() {
               {
                 ...params,
                 id: newLink.id,
-                type: 'smoothstep',
+                type: 'custom',
                 animated: false,
-                markerEnd: 'arrowclosed' as const,
+                markerEnd: {
+                  type: MarkerType.ArrowClosed,
+                  width: 28,
+                  height: 28,
+                  color: '#000000',
+                },
+                data: {
+                  onDelete: handleDeleteLink,
+                },
               },
               eds
             )
@@ -206,7 +268,7 @@ export default function CanvasPage() {
         alert('Failed to create link');
       }
     },
-    [links, setEdges, user, router]
+    [links, setEdges, user, router, handleDeleteLink]
   );
 
   // Handle task view
@@ -506,6 +568,7 @@ export default function CanvasPage() {
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
       >
         <Background />

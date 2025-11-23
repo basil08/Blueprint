@@ -118,14 +118,14 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto text-black">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-xl font-semibold text-black">
             {task ? 'Edit Task' : 'Create New Task'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-200 rounded transition-colors"
+            className="p-1 hover:bg-gray-200 rounded transition-colors text-black"
           >
             <XMarkIcon className="w-6 h-6" />
           </button>
@@ -133,32 +133,32 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Task Title *</label>
+            <label className="block text-sm font-medium mb-1 text-black">Task Title *</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Task Description</label>
+            <label className="block text-sm font-medium mb-1 text-black">Task Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
               rows={3}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
+            <label className="block text-sm font-medium mb-1 text-black">Status</label>
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
             >
               <option value="Pending">Pending</option>
               <option value="In Process">In Process</option>
@@ -167,7 +167,7 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Background Color</label>
+            <label className="block text-sm font-medium mb-1 text-black">Background Color</label>
             <div className="flex gap-2">
               <input
                 type="color"
@@ -179,13 +179,13 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
                 type="text"
                 value={formData.backgroundColor}
                 onChange={(e) => setFormData({ ...formData, backgroundColor: e.target.value })}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Foreground Color</label>
+            <label className="block text-sm font-medium mb-1 text-black">Foreground Color</label>
             <div className="flex gap-2">
               <input
                 type="color"
@@ -197,17 +197,17 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
                 type="text"
                 value={formData.foregroundColor}
                 onChange={(e) => setFormData({ ...formData, foregroundColor: e.target.value })}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Assign To</label>
+            <label className="block text-sm font-medium mb-1 text-black">Assign To</label>
             <select
               value={formData.assignedTo || ''}
               onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
             >
               <option value="">Unassigned</option>
               <option value="basil">basil</option>
@@ -216,7 +216,7 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Task Workflow</label>
+            <label className="block text-sm font-medium mb-1 text-black">Task Workflow</label>
             <div className="flex gap-2">
               <select
                 value={formData.workflow_id || ''}
@@ -225,7 +225,7 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
                   const selected = workflows.find(w => w.id === e.target.value);
                   setWorkflowInput(selected?.label || '');
                 }}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
               >
                 <option value="">No Workflow</option>
                 {workflows.map((workflow) => (
@@ -248,7 +248,7 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
                   }
                 }}
                 placeholder="Type to create new workflow"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
               />
               {workflowInput && !workflows.find(w => w.label.toLowerCase() === workflowInput.toLowerCase()) && (
                 <button
