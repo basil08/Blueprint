@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Project Management App
+
+A simple project management application built with Next.js and React Flow, using Google Sheets as the database via Google Apps Script.
+
+# TODO
+
+~~1. Make Task Card fixed sized (compact text with ellipsis), task card can only be changed by manual dragging by user.~~
+
+~~4. Make card remember their position in the graph~~
+
+--
+
+~~2. Make workflow as a first class object~~
+
+~~3. Make emphasis feature based on workflow~~ 
+
+-- 
+
+5. Add authentication system - only ashish and basil
+
+6. Add updated by field
+
+7. Add Assigned To field
+
+8. Add Assigned By field
+
+--
+
+9. Add branding
+
+## Features
+
+- **Visual Task Management**: Create and manage tasks using a React Flow canvas
+- **Task Relationships**: Create directed links between tasks (A → B means B is a child of A)
+- **Task Properties**: Each task includes:
+  - Title and Description
+  - Status (Pending, In Process, Completed)
+  - Custom background and foreground colors
+  - Workflow information
+  - Created/Updated timestamps
+- **CRUD Operations**: Full Create, Read, Update, Delete functionality
+- **Google Sheets Integration**: All data is stored in Google Sheets via Apps Script
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ installed
+- A Google account (for Google Sheets)
+
+### Installation
+
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Set up Google Apps Script (see [APPS_SCRIPT_SETUP.md](./APPS_SCRIPT_SETUP.md) for detailed instructions):
+   - Copy the code from `appScript.gs`
+   - Create a new Google Sheet
+   - Open Apps Script editor
+   - Paste the code and deploy as a web app
+   - Copy the web app URL
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Configure environment variables:
+   - Create a `.env.local` file in the root directory
+   - Add: `NEXT_PUBLIC_APPS_SCRIPT_URL=your_apps_script_url_here`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Run the development server:
+```bash
+npm run dev
+```
 
-## Learn More
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-To learn more about Next.js, take a look at the following resources:
+## Usage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Create Task**: Click the "+ New Task" button in the top-left corner
+- **Edit Task**: Click the pencil icon on any task node
+- **Delete Task**: Click the trash icon on any task node (confirmation required)
+- **Create Link**: Drag from one task node to another to create a parent-child relationship
+- **View Tasks**: All tasks are displayed as nodes on the canvas with their status, colors, and information
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+/app
+  /api          # Next.js API routes
+  page.tsx       # Main React Flow canvas page
+/components
+  TaskNode.tsx   # Custom task node component
+  TaskEditForm.tsx # Task creation/editing form
+/lib
+  api.ts        # API client for Apps Script
+  types.ts      # TypeScript type definitions
+appScript.gs    # Google Apps Script code (deploy this)
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Technology Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Next.js 16**: React framework
+- **React Flow**: Canvas-based node editor
+- **TypeScript**: Type safety
+- **Tailwind CSS**: Styling
+- **Google Apps Script**: Backend API
+- **Google Sheets**: Database
+
+## Setup Guide
+
+For detailed setup instructions, see [APPS_SCRIPT_SETUP.md](./APPS_SCRIPT_SETUP.md).
