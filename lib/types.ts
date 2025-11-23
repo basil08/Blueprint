@@ -15,6 +15,9 @@ export interface Task {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  updatedBy?: string;
+  assignedTo?: string;
+  assignedBy?: string;
   workflow_id?: string; // Workflow ID reference
   x?: number; // X coordinate position
   y?: number; // Y coordinate position

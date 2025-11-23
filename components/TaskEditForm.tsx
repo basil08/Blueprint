@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task, TaskStatus, Workflow } from '@/lib/types';
 import { XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '@/lib/auth-context';
 
 interface TaskEditFormProps {
   task: Task | null;
@@ -12,6 +13,7 @@ interface TaskEditFormProps {
 }
 
 export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated }: TaskEditFormProps) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<Partial<Task>>({
     title: '',
     description: '',
@@ -19,17 +21,30 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
     backgroundColor: '#FFFFFF',
     foregroundColor: '#000000',
     workflow_id: '',
+    assignedTo: '',
   });
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [workflowInput, setWorkflowInput] = useState('');
   const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Get user display name or email
+  const getUserDisplayName = () => {
+    if (!user) return 'admin';
+    return user.displayName || user.email?.split('@')[0] || 'admin';
+  };
+
   useEffect(() => {
     // Load workflows
     const loadWorkflows = async () => {
+      if (!user) return;
       try {
-        const response = await fetch('/api/workflows');
+        const token = await user.getIdToken();
+        const headers: HeadersInit = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const response = await fetch('/api/workflows', { headers });
         if (response.ok) {
           const data = await response.json();
           setWorkflows(data);
@@ -39,7 +54,7 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
       }
     };
     loadWorkflows();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (task) {
@@ -50,6 +65,7 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
         backgroundColor: task.backgroundColor,
         foregroundColor: task.foregroundColor,
         workflow_id: task.workflow_id,
+        assignedTo: task.assignedTo || '',
       });
       // Set workflow input to the label of the selected workflow
       if (task.workflow_id) {
@@ -64,6 +80,7 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
         backgroundColor: '#FFFFFF',
         foregroundColor: '#000000',
         workflow_id: '',
+        assignedTo: '',
       });
       setWorkflowInput('');
     }
@@ -79,6 +96,7 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
     if (isSaving) return; // Prevent double submission
 
     const now = new Date().toISOString();
+    const userDisplayName = getUserDisplayName();
     const taskToSave: Partial<Task> = {
       ...(task?.id && { id: task.id }),
       title: formData.title || '',
@@ -86,7 +104,10 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
       status: (formData.status as TaskStatus) || 'Pending',
       backgroundColor: formData.backgroundColor || '#FFFFFF',
       foregroundColor: formData.foregroundColor || '#000000',
-      createdBy: task?.createdBy || 'admin',
+      createdBy: task?.createdBy || userDisplayName,
+      updatedBy: userDisplayName,
+      assignedTo: formData.assignedTo || '',
+      assignedBy: formData.assignedTo ? userDisplayName : '',
       ...(task?.createdAt && { createdAt: task.createdAt }),
       updatedAt: now,
       workflow_id: formData.workflow_id || '',
@@ -182,6 +203,19 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
           </div>
 
           <div>
+            <label className="block text-sm font-medium mb-1">Assign To</label>
+            <select
+              value={formData.assignedTo || ''}
+              onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Unassigned</option>
+              <option value="basil">basil</option>
+              <option value="ashish">ashish</option>
+            </select>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium mb-1">Task Workflow</label>
             <div className="flex gap-2">
               <select
@@ -220,12 +254,19 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
                 <button
                   type="button"
                   onClick={async () => {
-                    if (!workflowInput.trim()) return;
+                    if (!workflowInput.trim() || !user) return;
                     setIsCreatingWorkflow(true);
                     try {
+                      const token = await user.getIdToken();
+                      const headers: HeadersInit = {
+                        'Content-Type': 'application/json',
+                      };
+                      if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                      }
                       const response = await fetch('/api/workflows', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers,
                         body: JSON.stringify({ label: workflowInput.trim() }),
                       });
                       if (response.ok) {

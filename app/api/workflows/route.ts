@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as api from '@/lib/api';
+import { verifyToken, getAuthToken } from '@/lib/auth';
 
-export async function GET() {
+async function checkAuth(request: NextRequest): Promise<{ uid: string; email: string | null; displayName: string | null } | null> {
+  const token = getAuthToken(request);
+  if (!token) {
+    return null;
+  }
+  return await verifyToken(token);
+}
+
+export async function GET(request: NextRequest) {
   try {
+    const user = await checkAuth(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const workflows = await api.getAllWorkflows();
     return NextResponse.json(workflows);
   } catch (error) {
@@ -14,6 +27,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await checkAuth(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const body = await request.json();
     const workflow = await api.createWorkflow(body);
     return NextResponse.json(workflow);

@@ -112,7 +112,7 @@ function initializeSheets() {
   let tasksSheet = ss.getSheetByName(SHEET_NAME);
   if (!tasksSheet) {
     tasksSheet = ss.insertSheet(SHEET_NAME);
-    tasksSheet.appendRow(['id', 'title', 'description', 'status', 'backgroundColor', 'foregroundColor', 'createdBy', 'createdAt', 'updatedAt', 'workflow_id', 'x', 'y']);
+    tasksSheet.appendRow(['id', 'title', 'description', 'status', 'backgroundColor', 'foregroundColor', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy', 'assignedTo', 'assignedBy', 'workflow_id', 'x', 'y']);
   } else {
     // Check and migrate workflow to workflow_id if needed
     const headers = tasksSheet.getRange(1, 1, 1, tasksSheet.getLastColumn()).getValues()[0];
@@ -124,10 +124,27 @@ function initializeSheets() {
       tasksSheet.getRange(1, workflowIndex + 1).setValue('workflow_id');
     }
     
+    // Check if new fields exist, if not add them
+    const lastCol = tasksSheet.getLastColumn();
+    let colIndex = lastCol;
+    if (headers.indexOf('updatedBy') === -1) {
+      tasksSheet.getRange(1, colIndex + 1).setValue('updatedBy');
+      colIndex++;
+    }
+    if (headers.indexOf('assignedTo') === -1) {
+      tasksSheet.getRange(1, colIndex + 1).setValue('assignedTo');
+      colIndex++;
+    }
+    if (headers.indexOf('assignedBy') === -1) {
+      tasksSheet.getRange(1, colIndex + 1).setValue('assignedBy');
+      colIndex++;
+    }
+    
     // Check if x and y columns exist, if not add them
     if (headers.indexOf('x') === -1) {
-      tasksSheet.getRange(1, tasksSheet.getLastColumn() + 1).setValue('x');
-      tasksSheet.getRange(1, tasksSheet.getLastColumn() + 1).setValue('y');
+      tasksSheet.getRange(1, colIndex + 1).setValue('x');
+      colIndex++;
+      tasksSheet.getRange(1, colIndex + 1).setValue('y');
     }
   }
   
@@ -163,6 +180,12 @@ function getAllTasks() {
       const workflowIndex = headers.indexOf('workflow'); // For backward compatibility
       const workflowIdCol = workflowIdIndex !== -1 ? workflowIdIndex : (workflowIndex !== -1 ? workflowIndex : 9);
       
+      const updatedByIndex = headers.indexOf('updatedBy');
+      const assignedToIndex = headers.indexOf('assignedTo');
+      const assignedByIndex = headers.indexOf('assignedBy');
+      const xIndex = headers.indexOf('x');
+      const yIndex = headers.indexOf('y');
+      
       tasks.push({
         id: row[0],
         title: row[1] || '',
@@ -173,9 +196,12 @@ function getAllTasks() {
         createdBy: row[6] || 'admin',
         createdAt: row[7] || '',
         updatedAt: row[8] || '',
+        updatedBy: updatedByIndex !== -1 ? (row[updatedByIndex] || '') : '',
+        assignedTo: assignedToIndex !== -1 ? (row[assignedToIndex] || '') : '',
+        assignedBy: assignedByIndex !== -1 ? (row[assignedByIndex] || '') : '',
         workflow_id: row[workflowIdCol] || '',
-        x: row[10] !== undefined && row[10] !== '' ? parseFloat(row[10]) : undefined,
-        y: row[11] !== undefined && row[11] !== '' ? parseFloat(row[11]) : undefined
+        x: xIndex !== -1 && row[xIndex] !== undefined && row[xIndex] !== '' ? parseFloat(row[xIndex]) : undefined,
+        y: yIndex !== -1 && row[yIndex] !== undefined && row[yIndex] !== '' ? parseFloat(row[yIndex]) : undefined
       });
     }
   }
@@ -194,6 +220,12 @@ function getTask(id) {
   
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
+      const updatedByIndex = headers.indexOf('updatedBy');
+      const assignedToIndex = headers.indexOf('assignedTo');
+      const assignedByIndex = headers.indexOf('assignedBy');
+      const xIndex = headers.indexOf('x');
+      const yIndex = headers.indexOf('y');
+      
       return ContentService.createTextOutput(JSON.stringify({
         id: data[i][0],
         title: data[i][1] || '',
@@ -204,9 +236,12 @@ function getTask(id) {
         createdBy: data[i][6] || 'admin',
         createdAt: data[i][7] || '',
         updatedAt: data[i][8] || '',
+        updatedBy: updatedByIndex !== -1 ? (data[i][updatedByIndex] || '') : '',
+        assignedTo: assignedToIndex !== -1 ? (data[i][assignedToIndex] || '') : '',
+        assignedBy: assignedByIndex !== -1 ? (data[i][assignedByIndex] || '') : '',
         workflow_id: data[i][workflowIdCol] || '',
-        x: data[i][10] !== undefined && data[i][10] !== '' ? parseFloat(data[i][10]) : undefined,
-        y: data[i][11] !== undefined && data[i][11] !== '' ? parseFloat(data[i][11]) : undefined
+        x: xIndex !== -1 && data[i][xIndex] !== undefined && data[i][xIndex] !== '' ? parseFloat(data[i][xIndex]) : undefined,
+        y: yIndex !== -1 && data[i][yIndex] !== undefined && data[i][yIndex] !== '' ? parseFloat(data[i][yIndex]) : undefined
       })).setMimeType(ContentService.MimeType.JSON);
     }
   }
@@ -230,6 +265,9 @@ function createTask(taskData) {
     taskData.createdBy || 'admin',
     now,
     now,
+    taskData.updatedBy || '',
+    taskData.assignedTo || '',
+    taskData.assignedBy || '',
     taskData.workflow_id || '',
     taskData.x !== undefined ? taskData.x : '',
     taskData.y !== undefined ? taskData.y : ''
@@ -253,32 +291,46 @@ function updateTask(taskData) {
       // Update all fields including x and y
       const numCols = tasksSheet.getLastColumn();
       
-      // Ensure we have enough columns (need 12 columns total: 1 for id + 11 for data)
-      if (numCols < 12) {
-        // Add missing column headers if needed
-        if (numCols === 10) {
-          tasksSheet.getRange(1, 11).setValue('x');
-          tasksSheet.getRange(1, 12).setValue('y');
-        } else if (numCols === 11) {
-          tasksSheet.getRange(1, 12).setValue('y');
-        }
-      }
+      const headers = tasksSheet.getRange(1, 1, 1, tasksSheet.getLastColumn()).getValues()[0];
+      const updatedByIndex = headers.indexOf('updatedBy');
+      const assignedToIndex = headers.indexOf('assignedTo');
+      const assignedByIndex = headers.indexOf('assignedBy');
+      const xIndex = headers.indexOf('x');
+      const yIndex = headers.indexOf('y');
+      const workflowIdIndex = headers.indexOf('workflow_id');
       
-      const updateValues = [
-        taskData.title || '',
-        taskData.description || '',
-        taskData.status || 'Pending',
-        taskData.backgroundColor || '#FFFFFF',
-        taskData.foregroundColor || '#000000',
-        taskData.createdBy || 'admin',
-        data[i][7] || now, // Keep original createdAt
-        now, // Update updatedAt
-        taskData.workflow_id || '',
-        taskData.x !== undefined && taskData.x !== null ? taskData.x : (data[i][10] !== undefined && data[i][10] !== '' ? data[i][10] : ''),
-        taskData.y !== undefined && taskData.y !== null ? taskData.y : (data[i][11] !== undefined && data[i][11] !== '' ? data[i][11] : '')
-      ];
+      // Build update values array based on column positions
+      const updateValues = [];
+      // title (col 2)
+      updateValues[0] = taskData.title || '';
+      // description (col 3)
+      updateValues[1] = taskData.description || '';
+      // status (col 4)
+      updateValues[2] = taskData.status || 'Pending';
+      // backgroundColor (col 5)
+      updateValues[3] = taskData.backgroundColor || '#FFFFFF';
+      // foregroundColor (col 6)
+      updateValues[4] = taskData.foregroundColor || '#000000';
+      // createdBy (col 7)
+      updateValues[5] = taskData.createdBy || data[i][6] || 'admin';
+      // createdAt (col 8) - keep original
+      updateValues[6] = data[i][7] || now;
+      // updatedAt (col 9)
+      updateValues[7] = now;
+      // updatedBy (col 10)
+      updateValues[8] = taskData.updatedBy || (updatedByIndex !== -1 ? data[i][updatedByIndex] : '');
+      // assignedTo (col 11)
+      updateValues[9] = taskData.assignedTo !== undefined ? (taskData.assignedTo || '') : (assignedToIndex !== -1 ? data[i][assignedToIndex] : '');
+      // assignedBy (col 12)
+      updateValues[10] = taskData.assignedBy || (assignedByIndex !== -1 ? data[i][assignedByIndex] : '');
+      // workflow_id (col 13)
+      updateValues[11] = taskData.workflow_id !== undefined ? (taskData.workflow_id || '') : (workflowIdIndex !== -1 ? data[i][workflowIdIndex] : '');
+      // x (col 14)
+      updateValues[12] = taskData.x !== undefined && taskData.x !== null ? taskData.x : (xIndex !== -1 && data[i][xIndex] !== undefined && data[i][xIndex] !== '' ? data[i][xIndex] : '');
+      // y (col 15)
+      updateValues[13] = taskData.y !== undefined && taskData.y !== null ? taskData.y : (yIndex !== -1 && data[i][yIndex] !== undefined && data[i][yIndex] !== '' ? data[i][yIndex] : '');
       
-      tasksSheet.getRange(i + 1, 2, 1, 11).setValues([updateValues]);
+      tasksSheet.getRange(i + 1, 2, 1, updateValues.length).setValues([updateValues]);
       
       return ContentService.createTextOutput(JSON.stringify({
         ...taskData,
