@@ -45,6 +45,11 @@ A simple project management application built with Next.js and React Flow, using
 
 ~~8. Add Assigned By field~~
 
+10. Add support to upload multimedia (images)
+
+11. Add support for markdown on forms
+
+
 --
 
 9. Add branding

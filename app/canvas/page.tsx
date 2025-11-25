@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import ReactFlow, {
   Node,
@@ -35,7 +35,7 @@ const edgeTypes: EdgeTypes = {
   custom: CustomEdge,
 };
 
-export default function CanvasPage() {
+function CanvasPageContent() {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -923,6 +923,18 @@ export default function CanvasPage() {
         onToggle={() => setIsFilterSidebarOpen(!isFilterSidebarOpen)}
       />
     </div>
+  );
+}
+
+export default function CanvasPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    }>
+      <CanvasPageContent />
+    </Suspense>
   );
 }
 
