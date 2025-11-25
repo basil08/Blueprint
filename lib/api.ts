@@ -1,4 +1,4 @@
-import { Task, TaskLink, Workflow } from './types';
+import { Task, TaskLink, Workflow, Graph } from './types';
 
 // Replace this with your Google Apps Script Web App URL
 // After deploying the Apps Script, you'll get a URL like:
@@ -43,9 +43,34 @@ async function fetchAppsScript(params: Record<string, string>, method: string = 
   return response.json();
 }
 
+// Graph API
+export async function getAllGraphs(): Promise<Graph[]> {
+  return fetchAppsScript({ type: 'graphs' });
+}
+
+export async function getGraph(id: string): Promise<Graph> {
+  return fetchAppsScript({ type: 'graph', id });
+}
+
+export async function createGraph(graph: Omit<Graph, 'id' | 'createdAt' | 'updatedAt'>): Promise<Graph> {
+  return fetchAppsScript({ type: 'graph' }, 'POST', graph);
+}
+
+export async function updateGraph(graph: Partial<Graph> & { id: string }): Promise<Graph> {
+  return fetchAppsScript({ type: 'graph' }, 'PUT', graph);
+}
+
+export async function deleteGraph(id: string): Promise<void> {
+  await fetchAppsScript({ type: 'graph', id }, 'DELETE');
+}
+
 // Task API
-export async function getAllTasks(): Promise<Task[]> {
-  return fetchAppsScript({ type: 'tasks' });
+export async function getAllTasks(graphId?: string): Promise<Task[]> {
+  const params: Record<string, string> = { type: 'tasks' };
+  if (graphId) {
+    params.graph_id = graphId;
+  }
+  return fetchAppsScript(params);
 }
 
 export async function getTask(id: string): Promise<Task> {
@@ -65,8 +90,12 @@ export async function deleteTask(id: string): Promise<void> {
 }
 
 // Link API
-export async function getAllLinks(): Promise<TaskLink[]> {
-  return fetchAppsScript({ type: 'links' });
+export async function getAllLinks(graphId?: string): Promise<TaskLink[]> {
+  const params: Record<string, string> = { type: 'links' };
+  if (graphId) {
+    params.graph_id = graphId;
+  }
+  return fetchAppsScript(params);
 }
 
 export async function createLink(link: Omit<TaskLink, 'id'>): Promise<TaskLink> {
@@ -78,8 +107,12 @@ export async function deleteLink(id: string): Promise<void> {
 }
 
 // Workflow API
-export async function getAllWorkflows(): Promise<Workflow[]> {
-  return fetchAppsScript({ type: 'workflows' });
+export async function getAllWorkflows(graphId?: string): Promise<Workflow[]> {
+  const params: Record<string, string> = { type: 'workflows' };
+  if (graphId) {
+    params.graph_id = graphId;
+  }
+  return fetchAppsScript(params);
 }
 
 export async function createWorkflow(workflow: Omit<Workflow, 'id'>): Promise<Workflow> {

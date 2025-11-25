@@ -4,9 +4,30 @@ A simple project management application built with Next.js and React Flow, using
 
 # TODO
 
+
+1. Make color presets for card background
+
+2. Add email reminders
+
+~~3. Make forms less buggy - manage state properly~~
+
+4. Multi-user workflows - implement CRDT
+
+~~5. Add more pads area~~
+
+~~6. Auto-arrange~~
+
+7. Ctrl+Z on all actions
+
+8. Multi-select and move around
+
+~~9. Filter by Assigned to~~ 
+
 ~~1. Make Task Card fixed sized (compact text with ellipsis), task card can only be changed by manual dragging by user.~~
 
 ~~4. Make card remember their position in the graph~~
+
+~~10. Add a new Graph dashboard management~~ 
 
 --
 
@@ -16,13 +37,13 @@ A simple project management application built with Next.js and React Flow, using
 
 -- 
 
-5. Add authentication system - only ashish and basil
+~~5. Add authentication system - only ashish and basil~~
 
-6. Add updated by field
+~~6. Add updated by field~~
 
-7. Add Assigned To field
+~~7. Add Assigned To field~~
 
-8. Add Assigned By field
+~~8. Add Assigned By field~~
 
 --
 

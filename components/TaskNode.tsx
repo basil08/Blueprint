@@ -74,7 +74,18 @@ export default function TaskNode({ data }: NodeProps<TaskNodeData>) {
         }
       }}
     >
-      <Handle type="target" position={Position.Top} />
+      <Handle 
+        type="target" 
+        position={Position.Top}
+        style={{
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          backgroundColor: '#3B82F6',
+          border: '2px solid white',
+          top: '-8px',
+        }}
+      />
       
       <div className="p-3 h-full flex flex-col task-content">
         <div className="flex items-start justify-between mb-2 flex-shrink-0">
@@ -143,7 +154,18 @@ export default function TaskNode({ data }: NodeProps<TaskNodeData>) {
         )}
       </div>
       
-      <Handle type="source" position={Position.Bottom} />
+      <Handle 
+        type="source" 
+        position={Position.Bottom}
+        style={{
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          backgroundColor: '#3B82F6',
+          border: '2px solid white',
+          bottom: '-8px',
+        }}
+      />
     </div>
   );
 }

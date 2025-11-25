@@ -10,9 +10,10 @@ interface TaskEditFormProps {
   onSave: (task: Partial<Task>, setLoading?: (loading: boolean) => void) => Promise<void>;
   onClose: () => void;
   onWorkflowCreated?: () => void;
+  graphId?: string | null;
 }
 
-export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated }: TaskEditFormProps) {
+export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated, graphId }: TaskEditFormProps) {
   const { user } = useAuth();
   const [formData, setFormData] = useState<Partial<Task>>({
     title: '',
@@ -27,6 +28,7 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
   const [workflowInput, setWorkflowInput] = useState('');
   const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(true);
 
   // Get user display name or email
   const getUserDisplayName = () => {
@@ -34,44 +36,54 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
     return user.displayName || user.email?.split('@')[0] || 'admin';
   };
 
+  // Load workflows - separate effect that doesn't affect form data
   useEffect(() => {
-    // Load workflows
     const loadWorkflows = async () => {
-      if (!user) return;
+      if (!user || !graphId) {
+        setIsLoadingWorkflows(false);
+        return;
+      }
+      setIsLoadingWorkflows(true);
       try {
         const token = await user.getIdToken();
         const headers: HeadersInit = {};
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
-        const response = await fetch('/api/workflows', { headers });
+        const response = await fetch(`/api/workflows?graph_id=${graphId}`, { headers });
         if (response.ok) {
           const data = await response.json();
           setWorkflows(data);
+          
+          // Only update workflow input if we have a task with workflow_id
+          if (task?.workflow_id) {
+            const selectedWorkflow = data.find((w: Workflow) => w.id === task.workflow_id);
+            if (selectedWorkflow) {
+              setWorkflowInput(selectedWorkflow.label);
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to load workflows:', error);
+      } finally {
+        setIsLoadingWorkflows(false);
       }
     };
     loadWorkflows();
-  }, [user]);
+  }, [user, graphId]); // Removed task from dependencies to prevent resets
 
+  // Initialize form data only when task changes (not when workflows change)
   useEffect(() => {
     if (task) {
       setFormData({
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        backgroundColor: task.backgroundColor,
-        foregroundColor: task.foregroundColor,
-        workflow_id: task.workflow_id,
+        title: task.title || '',
+        description: task.description || '',
+        status: task.status || 'Pending',
+        backgroundColor: task.backgroundColor || '#FFFFFF',
+        foregroundColor: task.foregroundColor || '#000000',
+        workflow_id: task.workflow_id || '',
         assignedTo: task.assignedTo || '',
       });
-      // Set workflow input to the label of the selected workflow
-      if (task.workflow_id) {
-        const selectedWorkflow = workflows.find(w => w.id === task.workflow_id);
-        setWorkflowInput(selectedWorkflow?.label || '');
-      }
     } else {
       setFormData({
         title: '',
@@ -84,7 +96,18 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
       });
       setWorkflowInput('');
     }
-  }, [task, workflows]);
+  }, [task]); // Only depend on task, not workflows
+
+  // Sync workflow input label when workflow_id changes in formData (only if workflows are loaded)
+  useEffect(() => {
+    if (!isLoadingWorkflows && workflows.length > 0 && formData.workflow_id) {
+      const selectedWorkflow = workflows.find(w => w.id === formData.workflow_id);
+      if (selectedWorkflow && selectedWorkflow.label !== workflowInput) {
+        setWorkflowInput(selectedWorkflow.label);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.workflow_id, isLoadingWorkflows]); // Only sync when workflow_id or loading state changes
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,13 +155,24 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {isLoadingWorkflows && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-700 flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Fetching workflow values...
+            </div>
+          )}
+          
           <div>
             <label className="block text-sm font-medium mb-1 text-black">Task Title *</label>
             <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              disabled={isLoadingWorkflows || isSaving}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -147,8 +181,9 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
             <label className="block text-sm font-medium mb-1 text-black">Task Description</label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              disabled={isLoadingWorkflows || isSaving}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
               rows={3}
             />
           </div>
@@ -157,8 +192,9 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
             <label className="block text-sm font-medium mb-1 text-black">Status</label>
             <select
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+              onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as TaskStatus }))}
+              disabled={isLoadingWorkflows || isSaving}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
               <option value="Pending">Pending</option>
               <option value="In Process">In Process</option>
@@ -172,14 +208,16 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
               <input
                 type="color"
                 value={formData.backgroundColor}
-                onChange={(e) => setFormData({ ...formData, backgroundColor: e.target.value })}
-                className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                onChange={(e) => setFormData(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                disabled={isLoadingWorkflows || isSaving}
+                className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               />
               <input
                 type="text"
                 value={formData.backgroundColor}
-                onChange={(e) => setFormData({ ...formData, backgroundColor: e.target.value })}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                onChange={(e) => setFormData(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                disabled={isLoadingWorkflows || isSaving}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -190,14 +228,16 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
               <input
                 type="color"
                 value={formData.foregroundColor}
-                onChange={(e) => setFormData({ ...formData, foregroundColor: e.target.value })}
-                className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                onChange={(e) => setFormData(prev => ({ ...prev, foregroundColor: e.target.value }))}
+                disabled={isLoadingWorkflows || isSaving}
+                className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               />
               <input
                 type="text"
                 value={formData.foregroundColor}
-                onChange={(e) => setFormData({ ...formData, foregroundColor: e.target.value })}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                onChange={(e) => setFormData(prev => ({ ...prev, foregroundColor: e.target.value }))}
+                disabled={isLoadingWorkflows || isSaving}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -206,8 +246,9 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
             <label className="block text-sm font-medium mb-1 text-black">Assign To</label>
             <select
               value={formData.assignedTo || ''}
-              onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+              onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
+              disabled={isLoadingWorkflows || isSaving}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
               <option value="">Unassigned</option>
               <option value="basil">basil</option>
@@ -221,11 +262,12 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
               <select
                 value={formData.workflow_id || ''}
                 onChange={(e) => {
-                  setFormData({ ...formData, workflow_id: e.target.value });
+                  setFormData(prev => ({ ...prev, workflow_id: e.target.value }));
                   const selected = workflows.find(w => w.id === e.target.value);
                   setWorkflowInput(selected?.label || '');
                 }}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                disabled={isLoadingWorkflows || isSaving}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
                 <option value="">No Workflow</option>
                 {workflows.map((workflow) => (
@@ -242,13 +284,14 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
                   // Check if it matches an existing workflow
                   const matching = workflows.find(w => w.label.toLowerCase() === e.target.value.toLowerCase());
                   if (matching) {
-                    setFormData({ ...formData, workflow_id: matching.id });
+                    setFormData(prev => ({ ...prev, workflow_id: matching.id }));
                   } else {
-                    setFormData({ ...formData, workflow_id: '' });
+                    setFormData(prev => ({ ...prev, workflow_id: '' }));
                   }
                 }}
+                disabled={isLoadingWorkflows || isSaving}
                 placeholder="Type to create new workflow"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               {workflowInput && !workflows.find(w => w.label.toLowerCase() === workflowInput.toLowerCase()) && (
                 <button
@@ -267,12 +310,16 @@ export default function TaskEditForm({ task, onSave, onClose, onWorkflowCreated 
                       const response = await fetch('/api/workflows', {
                         method: 'POST',
                         headers,
-                        body: JSON.stringify({ label: workflowInput.trim() }),
+                        body: JSON.stringify({ 
+                          label: workflowInput.trim(),
+                          graph_id: graphId || '',
+                        }),
                       });
                       if (response.ok) {
                         const newWorkflow = await response.json();
-                        setWorkflows([...workflows, newWorkflow]);
-                        setFormData({ ...formData, workflow_id: newWorkflow.id });
+                        setWorkflows(prev => [...prev, newWorkflow]);
+                        setFormData(prev => ({ ...prev, workflow_id: newWorkflow.id }));
+                        setWorkflowInput(newWorkflow.label);
                         if (onWorkflowCreated) onWorkflowCreated();
                       } else {
                         alert('Failed to create workflow');

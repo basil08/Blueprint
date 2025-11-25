@@ -1,29 +1,46 @@
 'use client';
 
-import React from 'react';
-import { Workflow, TaskStatus } from '@/lib/types';
+import React, { useMemo } from 'react';
+import { Workflow, TaskStatus, Task } from '@/lib/types';
 import { FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface FilterSidebarProps {
   workflows: Workflow[];
+  tasks: Task[];
   selectedWorkflowId: string | null;
   selectedStatus: TaskStatus | null;
+  selectedAssignedTo: string | null;
   onWorkflowChange: (workflowId: string | null) => void;
   onStatusChange: (status: TaskStatus | null) => void;
+  onAssignedToChange: (assignedTo: string | null) => void;
   isOpen: boolean;
   onToggle: () => void;
 }
 
 export default function FilterSidebar({
   workflows,
+  tasks,
   selectedWorkflowId,
   selectedStatus,
+  selectedAssignedTo,
   onWorkflowChange,
   onStatusChange,
+  onAssignedToChange,
   isOpen,
   onToggle,
 }: FilterSidebarProps) {
-  const hasActiveFilters = selectedWorkflowId !== null || selectedStatus !== null;
+  const hasActiveFilters = selectedWorkflowId !== null || selectedStatus !== null || selectedAssignedTo !== null;
+
+  // Get unique assignedTo values from tasks
+  const assignedToOptions = useMemo(() => {
+    const assignedToSet = new Set<string>();
+    tasks.forEach((task) => {
+      if (task.assignedTo && task.assignedTo.trim()) {
+        assignedToSet.add(task.assignedTo.trim());
+      }
+    });
+    return Array.from(assignedToSet).sort();
+  }, [tasks]);
 
   return (
     <>
@@ -35,7 +52,7 @@ export default function FilterSidebar({
         Filters
         {hasActiveFilters && (
           <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            {(selectedWorkflowId ? 1 : 0) + (selectedStatus ? 1 : 0)}
+            {(selectedWorkflowId ? 1 : 0) + (selectedStatus ? 1 : 0) + (selectedAssignedTo ? 1 : 0)}
           </span>
         )}
       </button>
@@ -83,11 +100,32 @@ export default function FilterSidebar({
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium mb-2">Assigned To</label>
+              <select
+                value={selectedAssignedTo || ''}
+                onChange={(e) => onAssignedToChange(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Assignees</option>
+                {assignedToOptions.length > 0 ? (
+                  assignedToOptions.map((assignedTo) => (
+                    <option key={assignedTo} value={assignedTo}>
+                      {assignedTo}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>No assignments found</option>
+                )}
+              </select>
+            </div>
+
             {hasActiveFilters && (
               <button
                 onClick={() => {
                   onWorkflowChange(null);
                   onStatusChange(null);
+                  onAssignedToChange(null);
                 }}
                 className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
               >

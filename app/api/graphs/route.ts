@@ -16,13 +16,11 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { searchParams } = new URL(request.url);
-    const graphId = searchParams.get('graph_id');
-    const tasks = await api.getAllTasks(graphId || undefined);
-    return NextResponse.json(tasks);
+    const graphs = await api.getAllGraphs();
+    return NextResponse.json(graphs);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch tasks';
-    console.error('Error fetching tasks:', errorMessage);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch graphs';
+    console.error('Error fetching graphs:', errorMessage);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
@@ -34,11 +32,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const body = await request.json();
-    const task = await api.createTask(body);
-    return NextResponse.json(task);
+    const graph = await api.createGraph({
+      ...body,
+      createdBy: user.email || user.uid || 'unknown',
+    });
+    return NextResponse.json(graph);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create task';
-    console.error('Error creating task:', errorMessage);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create graph';
+    console.error('Error creating graph:', errorMessage);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
@@ -51,12 +52,12 @@ export async function PUT(request: NextRequest) {
     }
     const body = await request.json();
     if (!body.id) {
-      return NextResponse.json({ error: 'Task ID is required for update' }, { status: 400 });
+      return NextResponse.json({ error: 'Graph ID is required for update' }, { status: 400 });
     }
-    const task = await api.updateTask(body);
-    return NextResponse.json(task);
+    const graph = await api.updateGraph(body);
+    return NextResponse.json(graph);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update graph' }, { status: 500 });
   }
 }
 
@@ -69,12 +70,12 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) {
-      return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Graph ID is required' }, { status: 400 });
     }
-    await api.deleteTask(id);
+    await api.deleteGraph(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to delete graph' }, { status: 500 });
   }
 }
 

@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const links = await api.getAllLinks();
+    const { searchParams } = new URL(request.url);
+    const graphId = searchParams.get('graph_id');
+    const links = await api.getAllLinks(graphId || undefined);
     return NextResponse.json(links);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch links' }, { status: 500 });

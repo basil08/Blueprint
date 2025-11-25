@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const workflows = await api.getAllWorkflows();
+    const { searchParams } = new URL(request.url);
+    const graphId = searchParams.get('graph_id');
+    const workflows = await api.getAllWorkflows(graphId || undefined);
     return NextResponse.json(workflows);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch workflows';
