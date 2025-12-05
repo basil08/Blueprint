@@ -22,6 +22,7 @@ import CustomEdge from '@/components/CustomEdge';
 import TaskEditForm from '@/components/TaskEditForm';
 import TaskViewModal from '@/components/TaskViewModal';
 import FilterSidebar from '@/components/FilterSidebar';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { Task, TaskLink, Workflow, TaskStatus, Graph } from '@/lib/types';
 import { useAuth } from '@/lib/auth-context';
 import { auth } from '@/lib/firebase';
@@ -53,6 +54,7 @@ function CanvasPageContent() {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<TaskStatus | null>(null);
   const [selectedAssignedTo, setSelectedAssignedTo] = useState<string | null>(null);
+  const [selectedDueDateFilter, setSelectedDueDateFilter] = useState<'today' | 'next-week' | null>(null);
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
   const [isArranging, setIsArranging] = useState(false);
 
@@ -481,6 +483,26 @@ function CanvasPageContent() {
 
   // Update nodes based on filters
   useEffect(() => {
+    // Helper function to check if task matches due date filter
+    const matchesDueDateFilter = (task: Task): boolean => {
+      if (!selectedDueDateFilter || !task.dueDate) return true;
+      
+      const dueDate = new Date(task.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      if (selectedDueDateFilter === 'today') {
+        return dueDate.getTime() === today.getTime();
+      } else if (selectedDueDateFilter === 'next-week') {
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+        return dueDate.getTime() >= today.getTime() && dueDate.getTime() <= nextWeek.getTime();
+      }
+      
+      return true;
+    };
+
     setNodes((currentNodes) =>
       currentNodes.map((node) => {
         const task = tasks.find((t) => t.id === node.id);
@@ -488,8 +510,14 @@ function CanvasPageContent() {
 
         const matchesWorkflow = !selectedWorkflowId || task.workflow_id === selectedWorkflowId;
         const matchesStatus = !selectedStatus || task.status === selectedStatus;
-        const matchesAssignedTo = !selectedAssignedTo || (task.assignedTo || '') === selectedAssignedTo;
-        const isFiltered = !matchesWorkflow || !matchesStatus || !matchesAssignedTo;
+        
+        // Check if any assignee matches (for comma-separated values)
+        const matchesAssignedTo = !selectedAssignedTo || 
+          (task.assignedTo && task.assignedTo.split(',').some(a => a.trim() === selectedAssignedTo));
+        
+        const matchesDueDate = matchesDueDateFilter(task);
+        
+        const isFiltered = !matchesWorkflow || !matchesStatus || !matchesAssignedTo || !matchesDueDate;
 
         return {
           ...node,
@@ -507,7 +535,7 @@ function CanvasPageContent() {
         };
       })
     );
-  }, [selectedWorkflowId, selectedStatus, selectedAssignedTo, tasks, workflows, setNodes]);
+  }, [selectedWorkflowId, selectedStatus, selectedAssignedTo, selectedDueDateFilter, tasks, workflows, setNodes]);
 
   // Detect cycles in the graph using DFS
   const detectCycle = useCallback((edges: Edge[]): string[] | null => {
@@ -813,8 +841,8 @@ function CanvasPageContent() {
 
   if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center h-screen bg-white dark:bg-gray-900">
+        <div className="text-lg text-black dark:text-white">Loading...</div>
       </div>
     );
   }
@@ -824,30 +852,30 @@ function CanvasPageContent() {
   }
 
   return (
-    <div className="w-full h-screen">
+    <div className="w-full h-screen bg-white dark:bg-gray-900">
       <div className="absolute top-4 left-4 z-10 flex gap-2 items-center">
         <button
           onClick={() => router.push('/dashboard')}
-          className="bg-gray-400 text-white px-4 py-2 rounded-md shadow-lg hover:bg-gray-500 transition-colors"
+          className="bg-gray-400 dark:bg-gray-600 text-white px-4 py-2 rounded-md shadow-lg hover:bg-gray-500 dark:hover:bg-gray-700 transition-colors"
           title="Back to Dashboard"
         >
           ← Dashboard
         </button>
         {currentGraph && (
-          <div className="bg-white px-4 py-2 rounded-md shadow-lg border border-gray-300">
-            <span className="text-sm font-semibold text-gray-700">{currentGraph.name}</span>
+          <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-md shadow-lg border border-gray-300 dark:border-gray-600">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{currentGraph.name}</span>
           </div>
         )}
         <button
           onClick={handleCreateTask}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md shadow-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-blue-500 dark:bg-blue-600 text-white px-4 py-2 rounded-md shadow-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isArranging}
         >
           + New Task
         </button>
         <button
           onClick={handleAutoArrange}
-          className="bg-green-500 text-white px-4 py-2 rounded-md shadow-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded-md shadow-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           disabled={isArranging}
         >
           {isArranging ? (
@@ -862,9 +890,10 @@ function CanvasPageContent() {
             'Auto Arrange'
           )}
         </button>
+        <ThemeSwitcher />
         <button
           onClick={handleLogout}
-          className="bg-gray-500 text-white px-4 py-2 rounded-md shadow-lg hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-gray-500 dark:bg-gray-600 text-white px-4 py-2 rounded-md shadow-lg hover:bg-gray-600 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isArranging}
         >
           Logout
@@ -916,9 +945,11 @@ function CanvasPageContent() {
         selectedWorkflowId={selectedWorkflowId}
         selectedStatus={selectedStatus}
         selectedAssignedTo={selectedAssignedTo}
+        selectedDueDateFilter={selectedDueDateFilter}
         onWorkflowChange={setSelectedWorkflowId}
         onStatusChange={setSelectedStatus}
         onAssignedToChange={setSelectedAssignedTo}
+        onDueDateFilterChange={setSelectedDueDateFilter}
         isOpen={isFilterSidebarOpen}
         onToggle={() => setIsFilterSidebarOpen(!isFilterSidebarOpen)}
       />
@@ -929,8 +960,8 @@ function CanvasPageContent() {
 export default function CanvasPage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center h-screen bg-white dark:bg-gray-900">
+        <div className="text-lg text-black dark:text-white">Loading...</div>
       </div>
     }>
       <CanvasPageContent />

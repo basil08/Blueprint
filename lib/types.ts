@@ -25,12 +25,13 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   updatedBy?: string;
-  assignedTo?: string;
+  assignedTo?: string; // Comma-separated list of assignees
   assignedBy?: string;
   workflow_id?: string; // Workflow ID reference
   graph_id: string; // Graph ID reference
   x?: number; // X coordinate position
   y?: number; // Y coordinate position
+  dueDate?: string; // ISO date string
 }
 
 export interface TaskLink {

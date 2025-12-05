@@ -152,6 +152,18 @@ export default function TaskNode({ data }: NodeProps<TaskNodeData>) {
             {data.workflowLabel}
           </p>
         )}
+        
+        {data.dueDate && (
+          <div className="flex-shrink-0 mt-1">
+            <p 
+              className="text-xs truncate" 
+              style={{ color: data.foregroundColor || '#000000', opacity: 0.7 }}
+              title={`Due: ${new Date(data.dueDate).toLocaleDateString()}`}
+            >
+              📅 {new Date(data.dueDate).toLocaleDateString()}
+            </p>
+          </div>
+        )}
       </div>
       
       <Handle 
