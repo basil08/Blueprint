@@ -54,7 +54,10 @@ export async function PUT(request: NextRequest) {
     if (!body.id) {
       return NextResponse.json({ error: 'Graph ID is required for update' }, { status: 400 });
     }
-    const graph = await api.updateGraph(body);
+    const graph = await api.updateGraph({
+      ...body,
+      // Note: Graph schema doesn't have updatedBy, only updatedAt
+    });
     return NextResponse.json(graph);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update graph' }, { status: 500 });

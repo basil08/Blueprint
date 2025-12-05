@@ -49,8 +49,13 @@ A simple project management application built with Next.js and React Flow, using
 
 11. Add support for markdown on forms
 
+12. UI modes
+13. Database shift
+14. Due dates
+15. Multiple assignees
+16. Generate gaant chart (add duration field)
 
---
+
 
 9. Add branding
 
