@@ -98,10 +98,11 @@ function getAuthInstance(): Auth {
     // Try to initialize if not already done
     initializeFirebase();
     if (!_auth) {
-      // During build, return a placeholder that will fail at runtime
+      // During build, return a placeholder (won't be used because code doesn't run during build)
       if (isBuildTime()) {
-        // This should never be reached at runtime, but we need to return something for TypeScript
-        throw new Error('Firebase Auth not available during build. This is expected.');
+        // Return a placeholder that satisfies TypeScript but will fail if actually used
+        // This should never happen because API routes are force-dynamic
+        return {} as Auth;
       }
       throw new Error('Firebase Auth not initialized. Please check your environment variables (NEXT_PUBLIC_FIREBASE_API_KEY, etc.)');
     }
@@ -114,9 +115,11 @@ function getDbInstance(): Firestore {
     // Try to initialize if not already done
     initializeFirebase();
     if (!_db) {
-      // During build, throw an error that won't break the build
+      // During build, return a placeholder (won't be used because code doesn't run during build)
       if (isBuildTime()) {
-        throw new Error('Firebase Firestore not available during build. This is expected.');
+        // Return a placeholder that satisfies TypeScript but will fail if actually used
+        // This should never happen because API routes are force-dynamic
+        return {} as Firestore;
       }
       // At runtime, provide a detailed error message
       const config = getFirebaseConfig();
@@ -138,10 +141,11 @@ function getAppInstance(): FirebaseApp {
     // Try to initialize if not already done
     initializeFirebase();
     if (!_app) {
-      // During build, return a placeholder that will fail at runtime
+      // During build, return a placeholder (won't be used because code doesn't run during build)
       if (isBuildTime()) {
-        // This should never be reached at runtime, but we need to return something for TypeScript
-        throw new Error('Firebase app not available during build. This is expected.');
+        // Return a placeholder that satisfies TypeScript but will fail if actually used
+        // This should never happen because API routes are force-dynamic
+        return {} as FirebaseApp;
       }
       throw new Error('Firebase app not initialized. Please check your environment variables.');
     }
@@ -150,10 +154,9 @@ function getAppInstance(): FirebaseApp {
 }
 
 // Export the real instances directly
-// These are the actual Firestore/Auth instances, not proxies
-// At runtime, these will always be real instances (initialization will succeed or throw)
-// During build, if initialization fails, the exports will be undefined, but that's okay
-// because the API routes are marked as force-dynamic and won't execute during build
+// During build, if initialization failed, these will be empty objects
+// but that's okay because the code won't execute during build (API routes are force-dynamic)
+// At runtime, these will be real instances
 export const auth = getAuthInstance();
 export const db = getDbInstance();
 export default getAppInstance();
