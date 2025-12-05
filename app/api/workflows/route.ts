@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as api from '@/lib/api';
 import { verifyToken, getAuthToken } from '@/lib/auth';
 
+// Force dynamic rendering to prevent build-time execution
+export const dynamic = 'force-dynamic';
+
 async function checkAuth(request: NextRequest): Promise<{ uid: string; email: string | null; displayName: string | null } | null> {
   const token = getAuthToken(request);
   if (!token) {
